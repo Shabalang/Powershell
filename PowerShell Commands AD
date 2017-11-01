@@ -1,0 +1,110 @@
+
+1- Open a PowerShell session and import the module:
+	Import-Module ActiveDirectory
+
+2- See Commands of the Module
+    get-command -module ActiveDirectory
+
+A: Reset a User Password:
+
+	A-1)create a variable with the new password:
+
+		$new=Read-Host "Enter the new password" -AsSecureString
+	
+	A-2)In the empty line Enter the New Pasword:
+		"newpass"
+	
+	A-3)Here's the change for user Jack Frost:
+	    Set-ADAccountPassword jfrost -NewPassword $new
+		
+	**CHeatCheat One Liner:
+		PS C:\> Set-ADAccountPassword jfrost -NewPassword (ConvertTo-SecureString -AsPlainText -String "P@ssw0rd1z3" -force)
+	
+	A-4) Make our friend Jack change his pass at next login:
+		 Set-ADUser jfrost -ChangePasswordAtLogon $True
+	
+	*Retrive the usename:
+		get-aduser jfrost -prop PasswordExpired
+	
+B: Disable and Enable a user Account:
+	
+	COOL TIP: -Whatif parameter, which you can find on many cmdlets that change things, to verify my command without running it. LIKE: Disable-ADAccount jfrost -whatif
+
+	B-1)Disable:
+		Disable-ADAccount jfrost
+	
+	B-2)Enable:
+		Enable-ADAccount jfrost
+		
+	NOTE: CAN BE USED WITH PIPELINE. EXAMPLE: example, this code disables all user accounts in the Sales department: get-aduser -filter "department -eq 'sales'" | disable-adaccount
+	
+C: Unlock a User Account:
+	
+	C-1) Unlock-ADAccount jfrost
+	
+	*NOte: Supports -Whatif & -Confirm
+	
+D: Delete a User Account(Deleting 1 or 100 user accounts is easy with the Remove-ADUser cmdlet):
+	
+	D-1) Do it, but not for real:
+		 Remove-ADUser jfrost -whatif
+		 
+	*NOTE: You can pipe:
+			get-aduser -filter "enabled -eq 'false'" -property WhenChanged -SearchBase "OU=Employees, DC=Globomantics,DC=Local" | where {$_.WhenChanged -le (Get-Date).AddDays(-180)} | Remove-ADuser -whatif
+
+E: Find Empty Groups:
+	
+	E-1)This code will find all groups in the domain, including built-in groups:
+		get-adgroup -filter * | where {-Not ($_ | get-adgroupmember)} | Select Name
+		
+	E-2)you can limit or fine-tune your search:
+		get-adgroup -filter "members -notlike '*' -AND GroupScope -eq 'Universal'" -SearchBase "OU=Groups,OU=Employees,DC=Globomantics, DC=local" | Select Name,Group*
+	
+F:  Add Members to a Group:
+	
+	F-1)Let's add Jack Frost to the Chicago IT group:
+		add-adgroupmember "chicago IT" -Members jfrost
+	
+	F-2)LETS ADD ALOT OF USERS:
+		Add-ADGroupMember "Chicago Employees" -member (get-aduser -filter "city -eq 'Chicago'")
+		
+		How It works: parenthetical pipelined expression to find all users with a City property of Chicago. The code in the parentheses is executed and the resulting objects are piped to the -Member parameter. Each user object is then added to the Chicago Employees group. 
+		
+		**Another way with FOR EACH:
+		 Get-ADUser -filter "city -eq 'Chicago'" | foreachv {Add-ADGroupMember "Chicago Employees" -Member $_}
+		 
+G:  Enumerate Members of a Group:(see who belongs to a given group)
+	
+	G-1)find out who belongs to the Domain Admins group:
+		Get-ADGroupMember "Domain Admins"
+		
+		** Following is for nested groups:
+			 Get-ADGroupMember "Chicago All Users" -Recursive | Select DistinguishedName
+	
+	G-2)Which groups a user belongs to:
+		get-aduser jfrost -property Memberof | Select -ExpandProperty memberOf CN=NewTest,OU=Groups,OU=Employees, DC=GLOBOMANTICS,DC=local CN=Chicago Test,OU=Groups,OU=Employees, DC=GLOBOMANTICS,DC=local CN=Chicago IT,OU=Groups,OU=Employees, DC=GLOBOMANTICS,DC=local CN=Chicago Sales Users,OU=Groups,OU=Employees, DC=GLOBOMANTICS,DC=local
+	
+H:	Find Obsolete Computer Accounts:
+	
+	H-1) Find Obsolete PCs machine accounts which have not changed password in 90 days:
+			get-adcomputer -filter "Passwordlastset -lt '1/1/2012'" -properties *| Select name,passwordlastset
+	
+	H-2) Find Obsolete PCs machine accounts according to last login:
+			H-2-1) create a filter:
+					H-2-1-1) convert date:
+								$cutoff=(Get-Date "1/1/2012").ToFileTime()
+								
+								*want to see the value: do $cutoff
+								
+			H-2-2)use this variable in a filter for Get-ADComputer:
+				Get-ADComputer -Filter "(lastlogontimestamp -lt $cutoff) -or (lastlogontimestamp -notlike '*')" -property * | Select Name,LastlogonTimestamp,PasswordLastSet
+	
+I) Disable a Computer Account:
+	Disable-ADAccount -Identity "chi-srv01$" -whatif
+	
+	pipeline version:
+		get-adcomputer "chi-srv01" | Disable-ADAccount
+		
+	find obsolete accounts and disable all those accounts:	
+		get-adcomputer -filter "Passwordlastset -lt '1/1/2012'" -properties *| Disable-ADAccount
+	
