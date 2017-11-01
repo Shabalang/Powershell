@@ -12,6 +12,9 @@ add a user to a specific group
 FOR MORE:
         http://searchwindowsserver.techtarget.com/tip/Automate-Active-Directory-jobs-with-PowerShell-scripts
 
+Even More:
+        http://www.lazywinadmin.com/p/scripts.html#TutorialCreatingaBasicGUI
+
 **** SAVE AS name the file 'ADScripting.vbs ****
 
 
