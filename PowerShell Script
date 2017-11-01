@@ -9,6 +9,9 @@ list all groups in Active Directory
 list all groups that a user is a member of 
 add a user to a specific group
 
+FOR MORE:
+        http://searchwindowsserver.techtarget.com/tip/Automate-Active-Directory-jobs-with-PowerShell-scripts
+
 **** SAVE AS name the file 'ADScripting.vbs ****
 
 
